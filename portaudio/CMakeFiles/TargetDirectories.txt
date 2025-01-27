@@ -1,0 +1,6 @@
+C:/Users/owner/Desktop/2025-projects/SalamSignal/portaudio/CMakeFiles/portaudio.dir
+C:/Users/owner/Desktop/2025-projects/SalamSignal/portaudio/CMakeFiles/portaudio_static.dir
+C:/Users/owner/Desktop/2025-projects/SalamSignal/portaudio/CMakeFiles/uninstall.dir
+C:/Users/owner/Desktop/2025-projects/SalamSignal/portaudio/CMakeFiles/INSTALL.dir
+C:/Users/owner/Desktop/2025-projects/SalamSignal/portaudio/CMakeFiles/ALL_BUILD.dir
+C:/Users/owner/Desktop/2025-projects/SalamSignal/portaudio/CMakeFiles/ZERO_CHECK.dir
