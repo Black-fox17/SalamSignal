@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, AudioWaveform, Square, Triangle, AlertTriangle } from 'lucide-react';
-
+import sound from '../sound.svg'
 const SoundGenerator = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [frequency, setFrequency] = useState(440); // Default frequency (A4 note)
   const [gain, setGain] = useState(0.1); // Volume control (0 to 1)
   const [waveform, setWaveform] = useState('sine'); // Waveform type
-
   const audioContextRef = useRef(null);
   const oscillatorRef = useRef(null);
   const gainNodeRef = useRef(null);
@@ -102,14 +101,21 @@ const SoundGenerator = () => {
         return <AudioWaveform className="text-blue-400" />;
     }
   };
+  const freqwarning = () => {
+    if(frequency > 10000){
+      return true;
+    }else{
+      return false;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
           <div className="flex items-center justify-center mb-4">
-            <AudioWaveform size={48} className="text-blue-400 mr-2" />
-            <h1 className="text-4xl font-bold">Sound Generator</h1>
+            <img src = {sound} className="text-blue-400 mr-2 w-30 h-32" />
+            <h1 className="text-4xl font-bold">SalamSignal</h1>
           </div>
           <p className="text-gray-400">Generate and explore sound frequencies</p>
         </header>
@@ -134,7 +140,7 @@ const SoundGenerator = () => {
             <input
               type="range"
               min="20"
-              max="2000"
+              max="20000"
               value={frequency}
               onChange={handleFrequencyChange}
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
@@ -144,6 +150,19 @@ const SoundGenerator = () => {
               <span>2000 Hz</span>
             </div>
           </div>
+          {
+            freqwarning() ? (
+              <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 mb-8">
+                <div className="flex items-center">
+                  <AlertTriangle className="text-red-500 mr-2" />
+                  <h2 className="text-xl font-semibold text-red-500">Warning</h2>
+                </div>
+                <p className="mt-2 text-gray-300">
+                  High frequency may cause hearing damage. Please use headphones responsibly.
+                </p>
+              </div>
+            ) : null
+          }
 
           {/* Volume Controls */}
           <div className="mb-8">
