@@ -12,6 +12,7 @@ def generate_sine_wave(frequency, duration, sample_rate=44100):
     """
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
     wave = 0.5 * np.sin(2 * np.pi * frequency * t)  # Amplitude is halved for safety
+    print(wave)
     return wave
 
 def play_sound(wave, sample_rate=44100):

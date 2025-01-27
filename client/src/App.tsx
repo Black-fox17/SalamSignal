@@ -1,79 +1,106 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, AlertTriangle, AudioWaveform as Waveform } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Volume2, VolumeX, AudioWaveform, Square, Triangle, AlertTriangle } from 'lucide-react';
 
-function App() {
-  const [frequency, setFrequency] = useState<number>(440);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [volume, setVolume] = useState<number>(0.1); // Start with low volume
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
+const SoundGenerator = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [frequency, setFrequency] = useState(440); // Default frequency (A4 note)
+  const [gain, setGain] = useState(0.1); // Volume control (0 to 1)
+  const [waveform, setWaveform] = useState('sine'); // Waveform type
+
+  const audioContextRef = useRef(null);
+  const oscillatorRef = useRef(null);
+  const gainNodeRef = useRef(null);
 
   useEffect(() => {
-    // Initialize Audio Context
-    audioContextRef.current = new AudioContext();
-    gainNodeRef.current = audioContextRef.current.createGain();
-    gainNodeRef.current.connect(audioContextRef.current.destination);
-    
+    // Cleanup when component unmounts
     return () => {
+      if (oscillatorRef.current) {
+        oscillatorRef.current.stop();
+      }
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
     };
   }, []);
 
-  useEffect(() => {
-    if (isPlaying) {
-      // Create and configure oscillator
-      const audioContext = audioContextRef.current!;
-      const oscillator = audioContext.createOscillator();
-      const gainNode = gainNodeRef.current!;
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-      
-      oscillator.connect(gainNode);
-      oscillator.start();
-      oscillatorRef.current = oscillator;
+  const startSound = () => {
+    // Initialize audio context on user interaction (required by browsers)
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioContextRef.current = new AudioContext();
+    
+    // Create oscillator and gain node
+    oscillatorRef.current = audioContextRef.current.createOscillator();
+    gainNodeRef.current = audioContextRef.current.createGain();
 
-      // Send frequency data to backend
-      sendFrequencyData(frequency);
-    } else {
-      if (oscillatorRef.current) {
-        oscillatorRef.current.stop();
-        oscillatorRef.current.disconnect();
-        oscillatorRef.current = null;
-      }
-    }
-  }, [isPlaying, frequency]);
+    // Configure oscillator
+    oscillatorRef.current.type = waveform;
+    oscillatorRef.current.frequency.setValueAtTime(
+      frequency,
+      audioContextRef.current.currentTime
+    );
 
-  useEffect(() => {
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.setValueAtTime(volume, audioContextRef.current!.currentTime);
-    }
-  }, [volume]);
+    // Configure gain (volume)
+    gainNodeRef.current.gain.setValueAtTime(
+      gain,
+      audioContextRef.current.currentTime
+    );
 
-  const sendFrequencyData = async (freq: number) => {
-    try {
-      const response = await fetch('http://localhost:8000/frequency', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ frequency: freq }),
-      });
-      const data = await response.json();
-      console.log('Frequency data sent:', data);
-    } catch (error) {
-      console.error('Error sending frequency data:', error);
+    // Connect nodes
+    oscillatorRef.current.connect(gainNodeRef.current);
+    gainNodeRef.current.connect(audioContextRef.current.destination);
+
+    // Start sound
+    oscillatorRef.current.start();
+    setIsPlaying(true);
+  };
+
+  const stopSound = () => {
+    if (oscillatorRef.current) {
+      oscillatorRef.current.stop();
+      oscillatorRef.current.disconnect();
+      setIsPlaying(false);
     }
   };
 
-  const getWarningLevel = (freq: number) => {
-    if (freq < 20) return 'Very low frequencies may not be audible';
-    if (freq > 15000) return 'High frequencies may cause discomfort';
-    return '';
+  const handleFrequencyChange = (e) => {
+    const newFrequency = Number(e.target.value);
+    setFrequency(newFrequency);
+    if (oscillatorRef.current) {
+      oscillatorRef.current.frequency.setValueAtTime(
+        newFrequency,
+        audioContextRef.current.currentTime
+      );
+    }
+  };
+
+  const handleGainChange = (e) => {
+    const newGain = Number(e.target.value);
+    setGain(newGain);
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.setValueAtTime(
+        newGain,
+        audioContextRef.current.currentTime
+      );
+    }
+  };
+
+  const handleWaveformChange = (e) => {
+    const newWaveform = e.target.value;
+    setWaveform(newWaveform);
+    if (oscillatorRef.current) {
+      oscillatorRef.current.type = newWaveform;
+    }
+  };
+
+  const getWaveformIcon = () => {
+    switch (waveform) {
+      case 'square':
+        return <Square className="text-blue-400" />;
+      case 'triangle':
+        return <Triangle className="text-blue-400" />;
+      default:
+        return <AudioWaveform className="text-blue-400" />;
+    }
   };
 
   return (
@@ -81,10 +108,10 @@ function App() {
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
           <div className="flex items-center justify-center mb-4">
-            <Waveform size={48} className="text-blue-400 mr-2" />
-            <h1 className="text-4xl font-bold">Frequency Generator</h1>
+            <AudioWaveform size={48} className="text-blue-400 mr-2" />
+            <h1 className="text-4xl font-bold">Sound Generator</h1>
           </div>
-          <p className="text-gray-400">Generate and explore sound frequencies from 0Hz to 20kHz</p>
+          <p className="text-gray-400">Generate and explore sound frequencies</p>
         </header>
 
         <div className="max-w-2xl mx-auto bg-gray-800 rounded-lg p-8 shadow-xl">
@@ -95,46 +122,34 @@ function App() {
               <h2 className="text-xl font-semibold text-red-500">Safety Warning</h2>
             </div>
             <p className="mt-2 text-gray-300">
-              Please use headphones responsibly. Extended exposure to loud sounds can damage your hearing.
-              Start with low volume and increase gradually.
+              Please use headphones responsibly. Start with low volume and increase gradually.
             </p>
           </div>
 
           {/* Frequency Controls */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-lg">Frequency: {frequency.toFixed(1)} Hz</label>
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`px-4 py-2 rounded-lg ${
-                  isPlaying 
-                    ? 'bg-red-500 hover:bg-red-600' 
-                    : 'bg-blue-500 hover:bg-blue-600'
-                } transition-colors`}
-              >
-                {isPlaying ? 'Stop' : 'Play'}
-              </button>
+              <label className="text-lg">Frequency: {frequency} Hz</label>
             </div>
             <input
               type="range"
-              min="0"
-              max="20000"
-              step="1"
+              min="20"
+              max="2000"
               value={frequency}
-              onChange={(e) => setFrequency(Number(e.target.value))}
+              onChange={handleFrequencyChange}
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-sm text-gray-400 mt-1">
-              <span>0 Hz</span>
-              <span>20,000 Hz</span>
+              <span>20 Hz</span>
+              <span>2000 Hz</span>
             </div>
           </div>
 
           {/* Volume Controls */}
-          <div className="mb-6">
+          <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-lg">Volume</label>
-              {volume > 0 ? (
+              <label className="text-lg">Volume: {gain.toFixed(2)}</label>
+              {gain > 0 ? (
                 <Volume2 className="text-gray-400" />
               ) : (
                 <VolumeX className="text-gray-400" />
@@ -145,21 +160,43 @@ function App() {
               min="0"
               max="1"
               step="0.01"
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              value={gain}
+              onChange={handleGainChange}
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
             />
           </div>
 
-          {/* Dynamic Warning Message */}
-          {getWarningLevel(frequency) && (
-            <div className="text-yellow-500 mt-4 flex items-center">
-              <AlertTriangle size={20} className="mr-2" />
-              <span>{getWarningLevel(frequency)}</span>
+          {/* Waveform Selection */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-lg">Waveform</label>
+              {getWaveformIcon()}
             </div>
-          )}
+            <select
+              value={waveform}
+              onChange={handleWaveformChange}
+              className="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="sine">Sine Wave</option>
+              <option value="square">Square Wave</option>
+              <option value="sawtooth">Sawtooth Wave</option>
+              <option value="triangle">Triangle Wave</option>
+            </select>
+          </div>
 
-          {/* Frequency Ranges Info */}
+          {/* Play/Stop Button */}
+          <button
+            onClick={isPlaying ? stopSound : startSound}
+            className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+              isPlaying 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-blue-500 hover:bg-blue-600'
+            }`}
+          >
+            {isPlaying ? 'Stop Sound' : 'Start Sound'}
+          </button>
+
+          {/* Frequency Range Info */}
           <div className="mt-8 bg-gray-900/50 rounded-lg p-4">
             <h3 className="text-lg font-semibold mb-2">Frequency Ranges</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -179,6 +216,6 @@ function App() {
       </div>
     </div>
   );
-}
+};
 
-export default App;
+export default SoundGenerator;
